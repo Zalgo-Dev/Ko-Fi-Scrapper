@@ -10,23 +10,18 @@ import time
 import os
 import logging
 
-# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Configuration parameters
-url = 'https://ko-fi.com/example/shop'  # Shop page URL
-discord_webhook_url = 'https://discord.com/api/webhooks/'  # Discord webhook URL
-embed_color = 0x3498db  # Embed color in hexadecimal
+url = 'https://ko-fi.com/example/shop'
+discord_webhook_url = 'https://discord.com/api/webhooks/'
+embed_color = 0x3498db
 
-# File to store retrieved items
 items_file = 'items.json'
 
-# Configure Selenium to run in headless mode
 options = Options()
 options.headless = True
-driver = webdriver.Chrome(options=options)  # Ensure the path to ChromeDriver is set in your PATH
+driver = webdriver.Chrome(options=options)
 
-# Function to load retrieved items
 def load_items():
     try:
         with open(items_file, 'r') as f:
@@ -43,13 +38,11 @@ def load_items():
         logging.error("JSON decoding error. Initializing new content.")
         return {}
 
-# Function to save retrieved items
 def save_items(items):
     with open(items_file, 'w') as f:
         logging.info("Saving items to the file.")
         json.dump(items, f, indent=4)
 
-# Function to send a message to Discord
 def send_to_discord(item_url, name, img, tags, desc, price):
     data = {
         "content": "@everyone",
@@ -76,7 +69,6 @@ def send_to_discord(item_url, name, img, tags, desc, price):
         logging.error(f"Error sending message for item: {item_url}")
         logging.error(f"Response: {response.text}")
 
-# Function to extract item details
 def get_item_details(item_url):
     logging.info(f"Retrieving item details: {item_url}")
     driver.get(f"https://ko-fi.com{item_url}")
@@ -110,13 +102,11 @@ def get_item_details(item_url):
 
     return name, img, tags, desc, price
 
-# Initialize the items.json file if it does not exist
 if not os.path.exists(items_file):
     logging.info(f"The file {items_file} does not exist. Creating a new file.")
     with open(items_file, 'w') as f:
         json.dump({}, f)
 
-# Load already retrieved items
 items = load_items()
 
 def check_for_new_items():
@@ -126,7 +116,6 @@ def check_for_new_items():
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'a.kfds-c-shop-item')))
     soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-    # Find all item links in the shop
     item_links = soup.find_all('a', class_='kfds-c-shop-item')
     logging.info(f"{len(item_links)} items found in the shop.")
 
@@ -136,7 +125,6 @@ def check_for_new_items():
         item_url = link.get('href')
         if item_url and item_url not in items:
             logging.info(f"New item found: {item_url}")
-            # If the item has never been retrieved, extract details, send to Discord, and add to the list
             name, img, tags, desc, price = get_item_details(item_url)
             logging.info(f"Item details: name={name}, img={img}, tags={tags}, desc={desc}, price={price}")
             send_to_discord(item_url, name, img, tags, desc, price)
@@ -148,19 +136,15 @@ def check_for_new_items():
                 "price": price
             }
             new_items_found = True
-            # Pause to avoid overloading the server with rapid requests
             time.sleep(2)
     
     if new_items_found:
-        # Save the updated list of retrieved items
         save_items(items)
     else:
         logging.info("No new items found.")
 
-# Perform an initial scan
 check_for_new_items()
 
-# Infinite loop to check for new items every minute
 while True:
     logging.info("Waiting for 60 seconds before the next check...")
     time.sleep(60)
